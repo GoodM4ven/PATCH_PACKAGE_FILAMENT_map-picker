@@ -20,7 +20,6 @@ Map Picker is a Filament custom field designed to simplify the process of choosi
    * A Field for Filament-v3 with OpenStreetMap Integration
    * Receive Real-time Coordinates Upon Marker Movement Completion
    * Tailor Controls and Marker Appearance to Your Preferences
-   * GeoMan Integration for Advanced Map Editing Capabilities
 
 * Latest versions of PHP and Filament
 * Best practices applied:
@@ -30,19 +29,6 @@ Map Picker is a Filament custom field designed to simplify the process of choosi
   * [`.gitignore`][link-gitignore]
   * [`pint.json`][link-pint]
 
-
-## GeoMan Integration
-
-This package now includes integration with GeoMan, a powerful tool for creating and editing geometries on maps. GeoMan allows users to draw various shapes, edit existing geometries, and perform advanced map editing tasks.
-
-### GeoMan Features:
-
-- Draw markers, polygons, polylines, and circles
-- Edit existing geometries
-- Cut polygons
-- Rotate shapes
-- Drag mode for easy shape manipulation
-- Delete layers
 
 ## Supported Maps
 
@@ -110,26 +96,6 @@ class FilamentResource extends Resource
                 ->boundaries(true, 49.5, -11, 61, 2) // Example for British Isles
                 ->rangeSelectField('distance')
                 
-                // GeoMan Integration
-                ->geoMan(true)
-                ->geoManEditable(true)
-                ->geoManPosition('topleft')
-                ->drawCircleMarker(true)
-                ->rotateMode(true)
-                ->drawMarker(true)
-                ->drawPolygon(true)
-                ->drawPolyline(true)
-                ->drawCircle(true)
-                ->drawRectangle(true)
-                ->drawText(true)
-                ->dragMode(true)
-                ->cutPolygon(true)
-                ->editPolygon(true)
-                ->deleteLayer(true)
-                ->setColor('#3388ff')
-                ->setFilledColor('#cad9ec')
-                ->snappable(true, 20)
-                
                 // Extra Customization
                 ->extraStyles([
                     'min-height: 150vh',
@@ -142,13 +108,11 @@ class FilamentResource extends Resource
                 ->afterStateUpdated(function (Set $set, ?array $state): void {
                     $set('latitude', $state['lat']);
                     $set('longitude', $state['lng']);
-                    $set('geojson', json_encode($state['geojson']));
                 })
                 ->afterStateHydrated(function ($state, $record, Set $set): void {
                     $set('location', [
                         'lat' => $record->latitude,
                         'lng' => $record->longitude,
-                        'geojson' => json_decode(strip_tags($record->description))
                     ]);
                 })
         ]);
@@ -215,7 +179,6 @@ Fieldset::make('Location')
             ->zoom(12)
             ->detectRetina()
             ->rangeSelectField('membership_distance')
-            ->setFilledColor('#cad9ec'),
     ])
     ->columns(1),
 ```
@@ -296,25 +259,6 @@ Here's a table describing all available options and their default values:
 | markerIconSize | Size of marker icon | [36, 36] |
 | markerIconClassName | CSS class for marker icon | '' |
 | markerIconAnchor | Anchor point for marker icon | [18, 36] |
-| geoMan.show | Enable GeoMan | false |
-| geoMan.editable | Allow editing with GeoMan | true |
-| geoMan.position | Position of GeoMan controls | 'topleft' |
-| geoMan.drawCircleMarker | Allow drawing circle markers | true |
-| geoMan.rotateMode | Enable rotate mode | true |
-| geoMan.drawMarker | Allow drawing markers | true |
-| geoMan.drawPolygon | Allow drawing polygons | true |
-| geoMan.drawPolyline | Allow drawing polylines | true |
-| geoMan.drawCircle | Allow drawing circles | true |
-| geoMan.dragMode | Enable drag mode | true |
-| geoMan.cutPolygon | Allow cutting polygons | true |
-| geoMan.editPolygon | Allow editing polygons | true |
-| geoMan.deleteLayer | Allow deleting layers | true |
-| geoMan.color | Stroke color for drawings | '#3388ff' |
-| geoMan.filledColor | Fill color for drawings | '#cad9ec' |
-| geoMan.snappable | Enable snapping to objects | false |
-| geoMan.snapDistance | Distance for snapping | 20 |
-| geoMan.drawText | Allow drawing text | true |
-| geoMan.drawRectangle | Allow drawing rectangles | true |
 
 ### Usage As Infolist Field
 
@@ -350,18 +294,6 @@ public static function infolist(Infolist $infolist): Infolist
                 ->showFullscreenControl(true)
                 ->showZoomControl(true)
                 
-                // GeoMan Integration (if needed for viewing)
-                ->geoMan(true)
-                ->geoManEditable(false) // Usually false for infolist view
-                ->geoManPosition('topleft')
-                ->drawCircleMarker(true)
-                ->drawMarker(true)
-                ->drawPolygon(true)
-                ->drawPolyline(true)
-                ->drawCircle(true)
-                ->drawRectangle(true)
-                ->drawText(true)
-                
                 // Styling
                 ->extraStyles([
                     'min-height: 50vh',
@@ -372,7 +304,6 @@ public static function infolist(Infolist $infolist): Infolist
                 ->state(fn ($record) => [
                     'lat' => $record?->latitude,
                     'lng' => $record?->longitude,
-                    'geojson' => $record?->geojson ? json_decode($record->geojson) : null
                 ])
         ]);
 }
@@ -380,7 +311,6 @@ public static function infolist(Infolist $infolist): Infolist
 
 Note: In infolist context, it's common to:
 - Set `draggable(false)` since it's typically used for viewing only
-- Set `geoManEditable(false)` if GeoMan is enabled
 - Use `state()` instead of `afterStateHydrated()`/`afterStateUpdated()`
 - Adjust the height to be smaller than in forms (e.g., 50vh vs 150vh)
 

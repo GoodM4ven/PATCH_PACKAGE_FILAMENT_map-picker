@@ -24,7 +24,6 @@ interface MapOptions
 
     public function rangeSelectField(string $rangeSelectField): self;
 
-    public function drawCircleMarker(Closure|bool $draw = true): self;
 
     public function zoom(int $zoom): self;
 
@@ -54,35 +53,7 @@ interface MapOptions
 
     public function showMyLocationButton(Closure|bool $showMyLocationButton = true): self;
 
-    public function geoMan(Closure|bool $show = true): self;
-
-    public function geoManEditable(Closure|bool $show = true): self;
-
-    public function geoManPosition(string $position = 'topleft'): self;
-
-    public function rotateMode(Closure|bool $rotate = true): self;
-
-    public function drawMarker(Closure|bool $draw = true): self;
-
-    public function drawPolygon(Closure|bool $draw = true): self;
-
-    public function drawPolyline(Closure|bool $draw = true): self;
-
-    public function drawCircle(Closure|bool $draw = true): self;
-
-    public function editPolygon(Closure|bool $edit = true): self;
-
-    public function deleteLayer(Closure|bool $delete = true): self;
-
-    public function dragMode(Closure|bool $enable = true): self;
-
-    public function cutPolygon(Closure|bool $enable = true): self;
-
-    public function setColor(string $color): self;
-
-    public function setFilledColor(string $filledColor): self;
-
-    public function markerHtml(string $html): self ;
+    public function markerHtml(string $html): self;
 
     public function markerIconUrl(?string $url): self;
 
@@ -91,10 +62,4 @@ interface MapOptions
     public function markerIconClassName(string $className): self;
 
     public function markerIconAnchor(array $anchor): self;
-
-    public function snappable(Closure|bool $snappable = true, int $distance = 20): self;
-
-    public function drawRectangle(Closure|bool $draw = true): self;
-
-    public function drawText(Closure|bool $draw = true): self;
 }
