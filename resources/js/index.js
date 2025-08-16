@@ -1,6 +1,5 @@
 import * as LF from 'leaflet';
 import 'leaflet-fullscreen';
-import "@geoman-io/leaflet-geoman-free";
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,11 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tile: null,
             marker: null,
             rangeCircle: null,
-            drawItems: null,
             rangeSelectField: null,
             formRestorationHiddenInput:null,
             debouncedUpdate: null,
-            EntityState: null,
             
             debounce: function(func, wait) {
                 let timeout;
@@ -118,147 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     that.setFormRestorationState(false, that.map.getZoom());
                 });
 
-                // Geoman setup
-                if (config.geoMan.show) {
-                        this.map.pm.addControls({
-                            snappable: config.geoMan.snappable,
-                            snapDistance: config.geoMan.snapDistance,
-                            position: config.geoMan.position,
-                            drawCircleMarker: config.geoMan.drawCircleMarker,
-                            rotateMode: config.geoMan.rotateMode,
-                            drawRectangle: config.geoMan.drawRectangle,
-                            drawText: config.geoMan.drawText,
-                            drawMarker: config.geoMan.drawMarker,
-                            drawPolygon: config.geoMan.drawPolygon,
-                            drawPolyline: config.geoMan.drawPolyline,
-                            drawCircle: config.geoMan.drawCircle,
-                            editMode: config.geoMan.editMode,
-                            dragMode: config.geoMan.dragMode,
-                            cutPolygon: config.geoMan.cutPolygon,
-                            editPolygon: config.geoMan.editPolygon,
-                            deleteLayer: config.geoMan.deleteLayer
-                        });
-
-                        this.drawItems = new LF.FeatureGroup().addTo(this.map);
-
-                        this.map.on('pm:create', (e) => {
-                            if (e.layer && e.layer.pm) {
-                                e.layer.pm.enable();
-
-                                if (e.shape === 'Circle') {
-                                    const center = e.layer.getLatLng();
-                                    const radius = e.layer.getRadius();
-         
-                                    e.layer.circleData = {
-                                        center: center,
-                                        radius: radius
-                                    };
-                                }
-                                
-                                this.drawItems.addLayer(e.layer);
-                                this.updateGeoJson();
-                            }
-                        });
-
-                        this.map.on('pm:edit', (e) => {
-                            if (e.layer && e.layer.getRadius) { 
-                                e.layer.circleData = {
-                                    center: e.layer.getLatLng(),
-                                    radius: e.layer.getRadius()
-                                };
-                            }
-                            this.updateGeoJson();
-                        });
-
-                        this.map.on('pm:remove', (e) => {
-                            try {
-                                this.drawItems.removeLayer(e.layer);
-                                this.updateGeoJson();
-                            } catch (error) {
-                                console.error("Error during removal of layer:", error);
-                            }
-                        });
-
-                    // Load existing GeoJSON if available
-                    const existingGeoJson = this.getGeoJson();
-                    if (existingGeoJson) {
-                            this.drawItems = LF.geoJSON(existingGeoJson, {
-                                pointToLayer: (feature, latlng) => {
-                                    if (feature.properties && feature.properties.type === "Circle") {
-          
-                                        const circle = LF.circle(latlng, {
-                                            radius: feature.properties.radius,
-                                            color: config.geoMan.color || "#3388ff",
-                                            fillColor: config.geoMan.filledColor || '#cad9ec',
-                                            fillOpacity: 0.4
-                                        });
-    
-                                        circle.circleData = {
-                                            center: latlng,
-                                            radius: feature.properties.radius
-                                        };
-                                        
-                                        return circle;
-                                    }
-               
-                                    return LF.circleMarker(latlng, {
-                                        radius: 15,
-                                        color: '#3388ff',
-                                        fillColor: '#3388ff',
-                                        fillOpacity: 0.6
-                                    });
-                                },
-                                style: function(feature) {
-                                    if (feature.geometry.type === 'Polygon') {
-                                        return {
-                                            color: config.geoMan.color || "#3388ff",
-                                            fillColor: config.geoMan.filledColor || 'blue',
-                                            weight: 2,
-                                            fillOpacity: 0.4
-                                        };
-                                    }
-                                },
-                                onEachFeature: (feature, layer) => {
-
-                                    if (typeof feature.properties.title != "undefined") {
-                                        layer.bindPopup(feature.properties.title);
-                                    }else if (feature.geometry.type === 'Polygon') {
-                                        layer.bindPopup("Polygon Area");
-                                    } else if (feature.geometry.type === 'Point') {
-                                        layer.bindPopup("Point Location");
-                                    }
-
-
-                                    if (config.geoMan.editable) {
-                                        if (feature.geometry.type === 'Polygon') {
-                                            layer.pm.enable({
-                                                allowSelfIntersection: false
-                                            });
-                                        } else if (feature.geometry.type === 'Point') {
-                                            layer.pm.enable({
-                                                draggable: true
-                                            });
-                                        }
-                                    }
-
-                                    layer.on('pm:edit', () => {
-                                        this.updateGeoJson();
-                                    });
-                                }
-                            }).addTo(this.map);
-
-                            if(config.geoMan.editable){
-               
-                                this.drawItems.eachLayer(layer => {
-                                    layer.pm.enable({
-                                        allowSelfIntersection: false,
-                                    });
-                                });
-                            }
-
-                            this.map.fitBounds(this.drawItems.getBounds());
-                    }
-              }
             },
             createMarkerIcon() {
                 if (config.markerIconUrl) {
@@ -308,54 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(this.formRestorationHiddenInput.value)
                     return JSON.parse(this.formRestorationHiddenInput.value);
                 return false;
-            },
-            updateGeoJson: function() {
-                try {
-                    const geoJsonData = {
-                        type: "FeatureCollection",
-                        features: []
-                    };
-
-                    this.drawItems.eachLayer((layer) => {
-                        if (layer.getRadius) {  // It's a circle
-                            const circleData = layer.circleData || {
-                                center: layer.getLatLng(),
-                                radius: layer.getRadius()
-                            };
-                            
-                            geoJsonData.features.push({
-                                type: "Feature",
-                                properties: {
-                                    type: "Circle",
-                                    radius: circleData.radius
-                                },
-                                geometry: {
-                                    type: "Point",
-                                    coordinates: [circleData.center.lng, circleData.center.lat]
-                                }
-                            });
-                        } else {
-     
-                            const layerGeoJson = layer.toGeoJSON();
-                            geoJsonData.features.push(layerGeoJson);
-                        }
-                    });
-
-                    $wire.set(config.statePath, {
-                        ...$wire.get(config.statePath),
-                        lat: this.marker ? this.marker.getLatLng().lat : this.map.getCenter().lat,
-                        lng: this.marker ? this.marker.getLatLng().lng : this.map.getCenter().lng,
-                        geojson: geoJsonData
-                    }, true);
-
-                } catch (error) {
-                    console.error("Error updating GeoJSON:", error);
-                }
-            },
-
-            getGeoJson: function() {
-                const state = $wire.get(config.statePath) ?? this.EntityState ??{};
-                return state.geojson;
             },
             updateLocation: function() {
                 let oldCoordinates = this.getCoordinates();
@@ -506,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.$wire = $wire;
                 this.config = config;
                 this.state = state;
-                this.EntityState = state;
                 
                 this.rangeSelectField = document.getElementById(config.rangeSelectField);
                 this.initFormRestoration();
