@@ -28,3 +28,11 @@
     height: 24px;
     fill: #333;
 }
+
+.map-search-input {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    width: 200px;
+}
+

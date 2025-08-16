@@ -44,7 +44,9 @@ class MapEntry extends Entry implements MapOptions
         'markerIconUrl'        => null,
         'markerIconSize'       => [36, 36],
         'markerIconClassName'  => '',
-        'markerIconAnchor'     => [18, 36]
+        'markerIconAnchor'     => [18, 36],
+        'searchable'           => false,
+        'searchPlaceholder'    => 'Search address...'
     ];
 
     /**
@@ -259,6 +261,20 @@ class MapEntry extends Entry implements MapOptions
     public function showMyLocationButton(Closure|bool $showMyLocationButton = true): self
     {
         $this->mapConfig['showMyLocationButton'] = $this->evaluate($showMyLocationButton);
+        return $this;
+    }
+
+    /**
+     * Enable address search on the map.
+     *
+     * @param Closure|bool   $searchable
+     * @param Closure|string $placeholder
+     */
+    public function searchable(Closure|bool $searchable = true, Closure|string $placeholder = 'Search address...'): self
+    {
+        $this->mapConfig['searchable'] = $this->evaluate($searchable);
+        $this->mapConfig['searchPlaceholder'] = $this->evaluate($placeholder);
+
         return $this;
     }
 

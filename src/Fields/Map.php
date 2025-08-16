@@ -46,7 +46,9 @@ class Map extends Field implements MapOptions
         'markerIconUrl' => null,
         'markerIconSize' => [36, 36],
         'markerIconClassName' => '',
-        'markerIconAnchor' => [18, 36]
+        'markerIconAnchor' => [18, 36],
+        'searchable'          => false,
+        'searchPlaceholder'   => 'Search address...'
     ];
 
     /**
@@ -331,6 +333,20 @@ class Map extends Field implements MapOptions
     }
 
     /**
+     * Enable address search on the map.
+     *
+     * @param Closure|bool   $searchable
+     * @param Closure|string $placeholder
+     */
+    public function searchable(Closure|bool $searchable = true, Closure|string $placeholder = 'Search address...'): self
+    {
+        $this->mapConfig['searchable'] = $this->evaluate($searchable);
+        $this->mapConfig['searchPlaceholder'] = $this->evaluate($placeholder);
+
+        return $this;
+    }
+
+    /**
      * Append extra controls to be passed to leaflet map object
      * @param array $control
      * @return $this
@@ -354,7 +370,7 @@ class Map extends Field implements MapOptions
 
 
 
-      /**
+    /**
      * Set custom HTML for marker icon
      * @param string $html
      * @return $this

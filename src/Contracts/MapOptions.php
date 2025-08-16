@@ -53,6 +53,8 @@ interface MapOptions
 
     public function showMyLocationButton(Closure|bool $showMyLocationButton = true): self;
 
+    public function searchable(Closure|bool $searchable = true, Closure|string $placeholder = 'Search address...'): self;
+
     public function markerHtml(string $html): self;
 
     public function markerIconUrl(?string $url): self;
