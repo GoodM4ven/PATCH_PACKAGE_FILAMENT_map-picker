@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rangeSelectField: null,
             formRestorationHiddenInput:null,
             debouncedUpdate: null,
+            searchInput: null,
             
             debounce: function(func, wait) {
                 let timeout;
@@ -68,6 +69,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     zoomOffset: config.zoomOffset,
                     detectRetina: config.detectRetina,
                 }).addTo(this.map);
+
+                if (config.searchable) {
+                    const searchControl = LF.control({ position: 'topleft' });
+                    searchControl.onAdd = () => {
+                        const div = LF.DomUtil.create('div');
+                        this.searchInput = LF.DomUtil.create('input', 'map-search-input', div);
+                        this.searchInput.type = 'text';
+                        this.searchInput.placeholder = config.searchPlaceholder || 'Search address...';
+                        this.searchInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                this.searchAddress(this.searchInput.value);
+                            }
+                        });
+                        return div;
+                    };
+                    searchControl.addTo(this.map);
+                }
 
                 if (config.showMarker) {
                     this.marker = LF.marker(this.getCoordinates(), {
@@ -237,7 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 this.debouncedUpdate(coords);
-                
+
+                if (config.searchable) {
+                    this.reverseGeocode(coords);
+                }
+
                 return coords;
             },
 
@@ -274,6 +297,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     alert('Geolocation is not supported by this browser.');
                 }
+            },
+
+            searchAddress: function(query) {
+                if (!query) {
+                    return;
+                }
+
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (Array.isArray(result) && result.length > 0) {
+                            const lat = parseFloat(result[0].lat);
+                            const lng = parseFloat(result[0].lon);
+                            const coords = { lat: lat, lng: lng };
+                            this.map.setView(new LF.LatLng(lat, lng));
+                            this.setCoordinates(coords);
+                            this.updateMarker();
+                        }
+                    })
+                    .catch(error => console.error('Geocoding error:', error));
+            },
+
+            reverseGeocode: function(coords) {
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result && result.display_name && this.searchInput) {
+                            this.searchInput.value = result.display_name;
+                        }
+                    })
+                    .catch(error => console.error('Reverse geocoding error:', error));
             },
 
             addLocationButton: function() {
