@@ -10,7 +10,6 @@ use Filament\Support\Assets\Asset;
 use Spatie\LaravelPackageTools\Package;
 use Filament\Support\Facades\FilamentIcon;
 use Filament\Support\Facades\FilamentAsset;
-use Filament\Support\Assets\AlpineComponent;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 
@@ -46,9 +45,7 @@ class MapPickerServiceProvider extends PackageServiceProvider
         }
     }
 
-    public function packageRegistered(): void
-    {
-    }
+    public function packageRegistered(): void {}
 
     public function packageBooted(): void
     {
@@ -78,9 +75,8 @@ class MapPickerServiceProvider extends PackageServiceProvider
     protected function getAssets(): array
     {
         return [
-            // AlpineComponent::make('map-picker', __DIR__ . '/../resources/dist/components/filament-map-picker.js'),
-            Css::make('filament-map-picker-styles', __DIR__.'/../resources/dist/filament-map-picker.css'),
-            Js::make('filament-map-picker-scripts', __DIR__.'/../resources/dist/filament-map-picker.js'),
+            Css::make('filament-map-picker-styles', __DIR__ . '/../resources/dist/filament-map-picker.css'),
+            Js::make('filament-map-picker-scripts', __DIR__ . '/../resources/dist/filament-map-picker.js'),
         ];
     }
 
@@ -89,8 +85,7 @@ class MapPickerServiceProvider extends PackageServiceProvider
      */
     protected function getCommands(): array
     {
-        return [
-        ];
+        return [];
     }
 
     /**
@@ -122,7 +117,6 @@ class MapPickerServiceProvider extends PackageServiceProvider
      */
     protected function getMigrations(): array
     {
-        return [
-        ];
+        return [];
     }
 }

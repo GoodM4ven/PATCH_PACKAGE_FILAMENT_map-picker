@@ -24,7 +24,6 @@ interface MapOptions
 
     public function rangeSelectField(string $rangeSelectField): self;
 
-
     public function zoom(int $zoom): self;
 
     public function maxZoom(int $maxZoom): self;

@@ -1,7 +1,6 @@
 import * as LF from 'leaflet';
 import 'leaflet-fullscreen';
 
-
 document.addEventListener('DOMContentLoaded', () => {
     const mapPicker = ($wire, config, state) => {
         return {
@@ -167,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         this.setCoordinates(coords);
                     }
                 });
-
             },
             setFormRestorationState: function(coords = null, zoom = null) {
-
                 coords = coords || this.getFormRestorationState() || this.getCoordinates();
             
                 if (this.map) {
@@ -232,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             },
 
             setCoordinates: function (coords) {
-
                 if (this.marker && config.showMarker) {
                     this.marker.setLatLng(coords);
                 }
@@ -340,7 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
             },
 
             setMarkerRange: function() {
-
                 if ((config.clickable && !this.marker) || !this.rangeSelectField) {
                     return;
                 }

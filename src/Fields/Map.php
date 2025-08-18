@@ -82,7 +82,7 @@ class Map extends Field implements MapOptions
     {
         $statePath = $this->getStatePath();
         $lastDotPosition = mb_strrpos($statePath, '.');
-        $rangeSelectField = mb_substr($statePath, 0, $lastDotPosition + 1).$this->mapConfig['rangeSelectField'];
+        $rangeSelectField = mb_substr($statePath, 0, $lastDotPosition + 1) . $this->mapConfig['rangeSelectField'];
         return json_encode(
             array_merge($this->mapConfig, [
                 'statePath' => $statePath,
@@ -143,7 +143,7 @@ class Map extends Field implements MapOptions
      */
     public function boundaries(Closure|bool $on, int|float $southWestLat = 0, int|float $southWestLng = 0, int|float $northEastLat = 0, int|float $northEastLng = 0): self
     {
-        if ( ! $this->evaluate($on)) {
+        if (! $this->evaluate($on)) {
             $this->mapConfig['bounds'] = false;
 
             return $this;
