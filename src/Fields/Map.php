@@ -48,7 +48,8 @@ class Map extends Field implements MapOptions
         'markerIconClassName' => '',
         'markerIconAnchor' => [18, 36],
         'searchable'          => false,
-        'searchPlaceholder'   => 'Search address...'
+        'searchPlaceholder'   => 'Search address...',
+        'askForCurrentLocation' => false,
     ];
 
     /**
@@ -82,7 +83,7 @@ class Map extends Field implements MapOptions
     {
         $statePath = $this->getStatePath();
         $lastDotPosition = mb_strrpos($statePath, '.');
-        $rangeSelectField = mb_substr($statePath, 0, $lastDotPosition + 1) . $this->mapConfig['rangeSelectField'];
+        $rangeSelectField = mb_substr($statePath, 0, $lastDotPosition + 1).$this->mapConfig['rangeSelectField'];
         return json_encode(
             array_merge($this->mapConfig, [
                 'statePath' => $statePath,
@@ -143,7 +144,7 @@ class Map extends Field implements MapOptions
      */
     public function boundaries(Closure|bool $on, int|float $southWestLat = 0, int|float $southWestLng = 0, int|float $northEastLat = 0, int|float $northEastLng = 0): self
     {
-        if (! $this->evaluate($on)) {
+        if ( ! $this->evaluate($on)) {
             $this->mapConfig['bounds'] = false;
 
             return $this;
@@ -329,6 +330,18 @@ class Map extends Field implements MapOptions
     public function showMyLocationButton(Closure|bool $showMyLocationButton = true): self
     {
         $this->mapConfig['showMyLocationButton'] = $this->evaluate($showMyLocationButton);
+        return $this;
+    }
+
+    /**
+     * Ask for the user's current location when the map loads.
+     *
+     * @param Closure|bool $ask
+     * @return $this
+     */
+    public function askForCurrentLocation(Closure|bool $ask = true): self
+    {
+        $this->mapConfig['askForCurrentLocation'] = $this->evaluate($ask);
         return $this;
     }
 
