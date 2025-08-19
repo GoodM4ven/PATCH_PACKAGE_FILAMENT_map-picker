@@ -70,21 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).addTo(this.map);
 
                 if (config.searchable) {
-                    const searchControl = LF.control({ position: 'topleft' });
-                    searchControl.onAdd = () => {
-                        const div = LF.DomUtil.create('div');
-                        this.searchInput = LF.DomUtil.create('input', 'map-search-input', div);
-                        this.searchInput.type = 'text';
-                        this.searchInput.placeholder = config.searchPlaceholder || 'Search address...';
-                        this.searchInput.addEventListener('keydown', (e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                this.searchAddress(this.searchInput.value);
-                            }
-                        });
-                        return div;
-                    };
-                    searchControl.addTo(this.map);
+                    this.addSearchControl();
                 }
 
                 if (config.showMarker) {
@@ -110,12 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let location = this.getCoordinates();
                 if (!location.lat && !location.lng) {
-                    this.map.locate({
-                        setView: true,
-                        maxZoom: config.controls.maxZoom,
-                        enableHighAccuracy: true,
-                        watch: false
-                    });
+                    if (config.askForCurrentLocation) {
+                        this.map.locate({
+                            setView: true,
+                            maxZoom: config.controls.maxZoom,
+                            enableHighAccuracy: true,
+                            watch: false
+                        });
+                    } else {
+                        this.map.setView(new LF.LatLng(config.default.lat, config.default.lng));
+                    }
                 } else {
                     this.map.setView(new LF.LatLng(location.lat, location.lng));
                 }
@@ -326,12 +316,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     .catch(error => console.error('Reverse geocoding error:', error));
             },
 
+            addSearchControl: function() {
+                const searchControl = LF.control({ position: 'topleft' });
+                searchControl.onAdd = () => {
+                    const container = LF.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const button = LF.DomUtil.create('a', '', container);
+                    button.href = '#';
+                    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path stroke="currentColor" stroke-width="2" fill="none" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>';
+
+                    this.searchInput = LF.DomUtil.create('input', 'map-search-input', container);
+                    this.searchInput.type = 'text';
+                    this.searchInput.placeholder = config.searchPlaceholder || 'Search address...';
+                    this.searchInput.style.display = 'none';
+
+                    LF.DomEvent.on(button, 'click', (e) => {
+                        LF.DomEvent.preventDefault(e);
+                        LF.DomEvent.stopPropagation(e);
+                        if (this.searchInput.style.display === 'none') {
+                            this.searchInput.style.display = 'block';
+                            this.searchInput.focus();
+                        } else {
+                            this.searchInput.style.display = 'none';
+                        }
+                    });
+
+                    this.searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.searchAddress(this.searchInput.value);
+                            this.searchInput.style.display = 'none';
+                        }
+                    });
+
+                    LF.DomEvent.disableClickPropagation(container);
+                    LF.DomEvent.disableScrollPropagation(container);
+
+                    return container;
+                };
+
+                searchControl.addTo(this.map);
+            },
+
             addLocationButton: function() {
                 const locationButton = document.createElement('button');
                 locationButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 0C8.25 0 5 3.25 5 7c0 5.25 7 13 7 13s7-7.75 7-13c0-3.75-3.25-7-7-7zm0 10c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm0-5c-1.11 0-2 .89-2 2s.89 2 2 2 2-.89 2-2-.89-2-2-2z"/></svg>';
                 locationButton.type = 'button';
                 locationButton.classList.add('map-location-button');
-                locationButton.onclick = () => this.fetchCurrentLocation();
+                locationButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.fetchCurrentLocation();
+                });
+                LF.DomEvent.disableClickPropagation(locationButton);
+                LF.DomEvent.disableScrollPropagation(locationButton);
                 this.map.getContainer().appendChild(locationButton);
             },
 
