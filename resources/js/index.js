@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
             formRestorationHiddenInput:null,
             debouncedUpdate: null,
             searchInput: null,
+            isUserInteracting: false,
+programmaticMove: false,
+geocodeAbort: null,
             
             debounce: function(func, wait) {
                 let timeout;
@@ -28,101 +31,87 @@ document.addEventListener('DOMContentLoaded', () => {
             createMap: function (el) {
                 const that = this;
 
-                this.map = LF.map(el, config.controls);
+                this.map = LF.map(el, this.config.controls);
 
-                if(config.bounds)
-                {
-                    let southWest = LF.latLng(config.bounds.sw.lat, config.bounds.sw.lng);
-                    let northEast = LF.latLng(config.bounds.ne.lat, config.bounds.ne.lng);
-                    let bounds = LF.latLngBounds(southWest, northEast);
+                if (this.config.bounds) {
+                    const sw = LF.latLng(this.config.bounds.sw.lat, this.config.bounds.sw.lng);
+                    const ne = LF.latLng(this.config.bounds.ne.lat, this.config.bounds.ne.lng);
+                    const bounds = LF.latLngBounds(sw, ne);
                     this.map.setMaxBounds(bounds);
                     this.map.fitBounds(bounds);
-                    this.map.on('drag', function() {
-                        that.map.panInsideBounds(bounds, { animate: false });
-                    });
-                }
-                this.map.on('load', () => {
-                    setTimeout(() => this.map.invalidateSize(true), 0);
-                    
-                    if (config.showMarker && !config.clickable) {
-                        this.marker.setLatLng(this.map.getCenter());
-                    }
-                });
-
-                if (!config.draggable) {
-                    this.map.dragging.disable();
+                    this.map.on('drag', () => this.map.panInsideBounds(bounds, { animate: false }));
                 }
 
-                if(config.clickable)
-                {
-                    this.map.on('click', function(e) {
-                        that.setCoordinates(e.latlng);
-                    });
+                this.map.on('load', () => setTimeout(() => this.map.invalidateSize(true), 0));
+
+                if (!this.config.draggable) this.map.dragging.disable();
+
+                if (this.config.clickable) {
+                    this.map.on('click', (e) => this.setCoordinates(e.latlng));
                 }
 
-                this.tile = LF.tileLayer(config.tilesUrl, {
-                    attribution: config.attribution,
-                    minZoom: config.minZoom,
-                    maxZoom: config.maxZoom,
-                    tileSize: config.tileSize,
-                    zoomOffset: config.zoomOffset,
-                    detectRetina: config.detectRetina,
+                this.tile = LF.tileLayer(this.config.tilesUrl, {
+                    attribution: this.config.attribution,
+                    minZoom: this.config.minZoom,
+                    maxZoom: this.config.maxZoom,
+                    tileSize: this.config.tileSize,
+                    zoomOffset: this.config.zoomOffset,
+                    detectRetina: this.config.detectRetina,
                 }).addTo(this.map);
 
-                if (config.searchable) {
-                    this.addSearchControl();
-                }
+                if (this.config.searchable) this.addSearchControl();
 
-                if (config.showMarker) {
+                if (this.config.showMarker) {
                     this.marker = LF.marker(this.getCoordinates(), {
-                        icon: this.createMarkerIcon(),
-                        draggable: false,
-                        autoPan: true
+                    icon: this.createMarkerIcon(),
+                    draggable: false,
+                    autoPan: false,
                     }).addTo(this.map);
                     this.setMarkerRange();
-                    if(!config.clickable) {
-                        this.map.on('move', () => this.setCoordinates(this.map.getCenter()));
+                }
+
+                // Track user vs programmatic moves
+                this.map.on('movestart', () => { this.isUserInteracting = !this.programmaticMove; });
+                this.map.on('moveend', () => {
+                    if (!this.config.clickable && this.isUserInteracting) {
+                    this.setCoordinates(this.map.getCenter());
+                    this.setMarkerRange();
                     }
-                }
-
-                if(!config.clickable)
-                {
-                    this.map.on('moveend', () => this.updateLocation());
-                }
-
-                this.map.on('locationfound', function () {
-                    that.map.setZoom(config.controls.zoom);
+                    this.isUserInteracting = false;
+                    this.programmaticMove = false;
+                    this.setFormRestorationState(false, this.map.getZoom());
                 });
 
-                let location = this.getCoordinates();
+                // Initial view
+                const location = this.getCoordinates();
                 if (!location.lat && !location.lng) {
-                    if (config.askForCurrentLocation) {
-                        this.map.locate({
-                            setView: true,
-                            maxZoom: config.controls.maxZoom,
-                            enableHighAccuracy: true,
-                            watch: false
-                        });
+                    if (this.config.askForCurrentLocation) {
+                    this.programmaticMove = true;
+                    this.map.locate({
+                        setView: true,
+                        maxZoom: this.config.controls.maxZoom,
+                        enableHighAccuracy: true,
+                        watch: false
+                    });
                     } else {
-                        this.map.setView(new LF.LatLng(config.default.lat, config.default.lng));
+                    this.programmaticMove = true;
+                    this.map.setView(new LF.LatLng(this.config.default.lat, this.config.default.lng), this.config.controls.zoom);
                     }
                 } else {
-                    this.map.setView(new LF.LatLng(location.lat, location.lng));
+                    this.programmaticMove = true;
+                    this.map.setView(new LF.LatLng(location.lat, location.lng), this.config.controls.zoom);
                 }
 
-                if (config.showMyLocationButton) {
-                    this.addLocationButton();
-                }
-
-                if (config.liveLocation.send && config.liveLocation.realtime) {
-                    setInterval(() => {
-                        this.fetchCurrentLocation();
-                    }, config.liveLocation.miliseconds);
-                }
-                this.map.on('zoomend',function(event) {
-                    that.setFormRestorationState(false, that.map.getZoom());
+                this.map.on('locationfound', () => {
+                    this.programmaticMove = true;
+                    this.map.setZoom(this.config.controls.zoom);
                 });
 
+                if (this.config.showMyLocationButton) this.addLocationButton();
+
+                if (this.config.liveLocation.send && this.config.liveLocation.realtime) {
+                    setInterval(() => this.fetchCurrentLocation(), this.config.liveLocation.miliseconds);
+                }
             },
             createMarkerIcon() {
                 if (config.markerIconUrl) {
@@ -219,34 +208,23 @@ document.addEventListener('DOMContentLoaded', () => {
             },
 
             setCoordinates: function (coords) {
-                if (this.marker && config.showMarker) {
-                    this.marker.setLatLng(coords);
-                }
+                if (this.marker && this.config.showMarker) this.marker.setLatLng(coords);
                 this.setFormRestorationState(coords);
 
                 if (!this.debouncedUpdate) {
-                    this.debouncedUpdate = this.debounce((coords) => {
-                        if(config.type === 'field'){
-                            $wire.set(config.statePath, {
-                                ...$wire.get(config.statePath),
-                                lat: coords.lat,
-                                    lng: coords.lng
-                                });
-                        }
-
-                        if (config.liveLocation.send) {
-                            $wire.$refresh();
-                        }
-                        this.updateMarker();
-                    }, config.updateDelay || 500);
+                    this.debouncedUpdate = this.debounce((c) => {
+                    if (this.config.type === 'field') {
+                        this.$wire.set(this.config.statePath, {
+                        ...this.$wire.get(this.config.statePath),
+                        lat: c.lat, lng: c.lng
+                        });
+                    }
+                    if (this.config.liveLocation.send) this.$wire.$refresh();
+                    this.updateMarker();
+                    if (this.config.searchable) this.reverseGeocode(c);
+                    }, this.config.updateDelay || 500);
                 }
-
                 this.debouncedUpdate(coords);
-
-                if (config.searchable) {
-                    this.reverseGeocode(coords);
-                }
-
                 return coords;
             },
 
@@ -270,106 +248,115 @@ document.addEventListener('DOMContentLoaded', () => {
             },
 
             fetchCurrentLocation: function () {
-                if ('geolocation' in navigator) {
-                    navigator.geolocation.getCurrentPosition(async position => {
-                        const currentPosition = new LF.LatLng(position.coords.latitude, position.coords.longitude);
-                        await this.map.flyTo(currentPosition);
-
-                        this.updateLocation();
-                        this.updateMarker();
-                    }, error => {
-                        console.error('Error fetching current location:', error);
-                    });
-                } else {
+                if (!('geolocation' in navigator)) {
                     alert('Geolocation is not supported by this browser.');
-                }
-            },
-
-            searchAddress: function(query) {
-                if (!query) {
                     return;
                 }
-
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(result => {
-                        if (Array.isArray(result) && result.length > 0) {
-                            const lat = parseFloat(result[0].lat);
-                            const lng = parseFloat(result[0].lon);
-                            const coords = { lat: lat, lng: lng };
-                            this.map.setView(new LF.LatLng(lat, lng));
-                            this.setCoordinates(coords);
-                            this.updateMarker();
-                        }
-                    })
-                    .catch(error => console.error('Geocoding error:', error));
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                    const p = new LF.LatLng(pos.coords.latitude, pos.coords.longitude);
+                    this.programmaticMove = true;
+                    this.map.setView(p, this.config.controls.zoom, { animate: true });
+                    this.setCoordinates(p);
+                    this.updateMarker();
+                    },
+                    (err) => console.error('Error fetching current location:', err),
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
             },
 
-            reverseGeocode: function(coords) {
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result && result.display_name && this.searchInput) {
-                            this.searchInput.value = result.display_name;
-                        }
+            searchAddress: function (query) {
+                const key = this.config.maptilerKey;
+                if (!this.config.searchable || !query || !key) return;
+
+                if (this.geocodeAbort) this.geocodeAbort.abort();
+                this.geocodeAbort = new AbortController();
+
+                const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${encodeURIComponent(key)}&limit=1`;
+
+                fetch(url, { signal: this.geocodeAbort.signal })
+                    .then(r => r.ok ? r.json() : Promise.reject(r))
+                    .then(json => {
+                    const f = json && Array.isArray(json.features) ? json.features[0] : null;
+                    if (!f || !f.geometry || !Array.isArray(f.geometry.coordinates)) return;
+                    const [lng, lat] = f.geometry.coordinates;
+                    const coords = { lat, lng };
+                    this.programmaticMove = true;
+                    this.map.setView(new LF.LatLng(lat, lng), Math.max(14, this.map.getZoom() || 14), { animate: true });
+                    this.setCoordinates(coords);
+                    this.updateMarker();
                     })
-                    .catch(error => console.error('Reverse geocoding error:', error));
+                    .catch(err => {
+                    if (err.name !== 'AbortError') console.error('Geocoding error:', err);
+                    });
             },
 
-            addSearchControl: function() {
-                const searchControl = LF.control({ position: 'topleft' });
-                searchControl.onAdd = () => {
+            reverseGeocode: function (coords) {
+                const key = this.config.maptilerKey;
+                if (!this.config.searchable || !key || !coords) return;
+
+                const url = `https://api.maptiler.com/geocoding/${coords.lng},${coords.lat}.json?key=${encodeURIComponent(key)}&limit=1`;
+
+                fetch(url)
+                    .then(r => r.ok ? r.json() : Promise.reject(r))
+                    .then(json => {
+                    const f = json && Array.isArray(json.features) ? json.features[0] : null;
+                    const label = f && (f.place_name || f.text || (f.properties && f.properties.name));
+                    if (label && this.searchInput) this.searchInput.value = label;
+                    })
+                    .catch(err => console.error('Reverse geocoding error:', err));
+            },
+
+            addSearchControl: function () {
+                const that = this;
+                const SearchCtl = LF.Control.extend({
+                    options: { position: 'topleft' },
+                    onAdd: function () {
                     const container = LF.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    const button = LF.DomUtil.create('a', '', container);
-                    button.href = '#';
-                    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path stroke="currentColor" stroke-width="2" fill="none" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>';
+                    const input = LF.DomUtil.create('input', 'map-search-input', container);
+                    input.type = 'search';
+                    input.placeholder = that.config.searchPlaceholder || 'Search address...';
+                    input.autocomplete = 'off';
+                    input.spellcheck = false;
 
-                    this.searchInput = LF.DomUtil.create('input', 'map-search-input', container);
-                    this.searchInput.type = 'text';
-                    this.searchInput.placeholder = config.searchPlaceholder || 'Search address...';
-                    this.searchInput.style.display = 'none';
+                    const doSearch = that.debounce(() => that.searchAddress(input.value), 450);
 
-                    LF.DomEvent.on(button, 'click', (e) => {
-                        LF.DomEvent.preventDefault(e);
-                        LF.DomEvent.stopPropagation(e);
-                        if (this.searchInput.style.display === 'none') {
-                            this.searchInput.style.display = 'block';
-                            this.searchInput.focus();
-                        } else {
-                            this.searchInput.style.display = 'none';
-                        }
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); that.searchAddress(input.value); }
                     });
+                    input.addEventListener('input', () => doSearch());
 
-                    this.searchInput.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            this.searchAddress(this.searchInput.value);
-                            this.searchInput.style.display = 'none';
-                        }
-                    });
-
+                    // prevent map interactions while typing
                     LF.DomEvent.disableClickPropagation(container);
                     LF.DomEvent.disableScrollPropagation(container);
-
+                    that.searchInput = input;
                     return container;
-                };
-
-                searchControl.addTo(this.map);
+                    }
+                });
+                this.map.addControl(new SearchCtl());
             },
 
-            addLocationButton: function() {
-                const locationButton = document.createElement('button');
-                locationButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 0C8.25 0 5 3.25 5 7c0 5.25 7 13 7 13s7-7.75 7-13c0-3.75-3.25-7-7-7zm0 10c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm0-5c-1.11 0-2 .89-2 2s.89 2 2 2 2-.89 2-2-.89-2-2-2z"/></svg>';
-                locationButton.type = 'button';
-                locationButton.classList.add('map-location-button');
-                locationButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.fetchCurrentLocation();
+            addLocationButton: function () {
+                const that = this;
+                const MyLoc = LF.Control.extend({
+                    options: { position: 'topleft' },
+                    onAdd: function () {
+                    const container = LF.DomUtil.create('div', 'leaflet-bar');
+                    const btn = LF.DomUtil.create('a', 'leaflet-control-zoom-in', container);
+                    btn.href = '#';
+                    btn.title = 'Go to my location';
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v1a8 8 0 0 1 7 7h1a1 1 0 1 1 0 2h-1a8 8 0 0 1-7 7v1a1 1 0 1 1-2 0v-1a8 8 0 0 1-7-7H2a1 1 0 1 1 0-2h1a8 8 0 0 1 7-7V3a1 1 0 0 1 1-1Zm0 5a5 5 0 1 0 .001 10.001A5 5 0 0 0 12 7Z"/></svg>';
+                    LF.DomEvent.on(btn, 'click', (e) => {
+                        LF.DomEvent.preventDefault(e);
+                        LF.DomEvent.stopPropagation(e);
+                        that.fetchCurrentLocation();
+                    });
+                    LF.DomEvent.disableClickPropagation(container);
+                    LF.DomEvent.disableScrollPropagation(container);
+                    return container;
+                    }
                 });
-                LF.DomEvent.disableClickPropagation(locationButton);
-                LF.DomEvent.disableScrollPropagation(locationButton);
-                this.map.getContainer().appendChild(locationButton);
+                this.map.addControl(new MyLoc());
             },
 
             setMarkerRange: function() {
@@ -411,11 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 $wire.on('refreshMap', this.refreshMap.bind(this));
             },
 
-            updateMarker: function() {
-                if (config.showMarker && this.marker) {
+            updateMarker: function () {
+                if (this.config.showMarker && this.marker) {
                     this.marker.setLatLng(this.getCoordinates());
                     this.setMarkerRange();
-                    this.updateLocation();
                 }
             },
 
