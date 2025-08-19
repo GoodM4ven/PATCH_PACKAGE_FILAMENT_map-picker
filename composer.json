@@ -1,5 +1,6 @@
 {
     "name": "dotswan/filament-map-picker",
+    "version": "1.0.x-dev",
     "description": "Easily pick and retrieve geo-coordinates using a map-based interface in your Filament applications.",
     "keywords": [
         "dotswan",
